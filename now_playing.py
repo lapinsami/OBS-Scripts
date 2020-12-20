@@ -135,7 +135,7 @@ def main():
     firstRun()
     text_save_path, art_save_path, player = readConfig()
     player = setupPlayer(player)
-    old_url = " "
+    old_song_id = " "
 
     user_text_save_path = input(f"Path + filename to save the song title to (empty for default: {text_save_path}): ")
     if not user_text_save_path:
@@ -151,16 +151,16 @@ def main():
 
     while True:
         metadata = player.Get("org.mpris.MediaPlayer2.Player", "Metadata", dbus_interface="org.freedesktop.DBus.Properties")
-        url = metadata["xesam:url"] if "xesam:url" in metadata else ""
 
-        if old_url != url:
+        artist = metadata["xesam:artist"][0] if "xesam:artist" in metadata else ""
+        song = metadata["xesam:title"] if "xesam:title" in metadata else ""
+        album = metadata["xesam:album"] if "xesam:album" in metadata else ""
+        album_art = metadata["mpris:artUrl"] if "mpris:artUrl" in metadata else "default.png"
+        album_art = album_art.replace("file://", "")
 
-            artist = metadata["xesam:artist"][0] if "xesam:artist" in metadata else ""
-            song = metadata["xesam:title"] if "xesam:title" in metadata else ""
-            album = metadata["xesam:album"] if "xesam:album" in metadata else ""
-            album_art = metadata["mpris:artUrl"] if "mpris:artUrl" in metadata else "default.png"
-            album_art = album_art.replace("file://", "")
+        song_id = artist + song + album + album_art
 
+        if old_song_id != song_id:
             if album_art.startswith("https://open.spotify.com"):
                 # Spotify gives broken urls, see
                 # https://community.spotify.com/t5/Desktop-Linux/MPRIS-cover-art-url-file-not-found/td-p/4920104
@@ -171,12 +171,11 @@ def main():
             writeTitle(f"{artist}\n{song}\n{album}", user_text_save_path)
             writeAlbumArt(album_art, user_art_save_path)
 
-            old_url = url
-
-            print("--------------------")
+            print("------------------------------------")
             print(f"{artist} - {song}, {album}") if artist or song or album else print("Paused")
             print(f"Album art: {album_art}")
 
+        old_song_id = song_id
         time.sleep(0.2)
 
 
