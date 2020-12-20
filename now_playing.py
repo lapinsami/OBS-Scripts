@@ -3,7 +3,6 @@
 import os
 import io
 import dbus
-import re
 import time
 import urllib.request
 from PIL import Image
@@ -65,7 +64,7 @@ def setupPlayer(default_player):
     players = list()
 
     for service in bus.list_names():
-        if re.match("org.mpris.MediaPlayer2.", service):
+        if service.startswith("org.mpris.MediaPlayer2."):
             players.append(service.replace("org.mpris.MediaPlayer2.", ""))
 
     sep = "\n\t"
