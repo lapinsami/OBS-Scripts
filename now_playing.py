@@ -1,5 +1,4 @@
-# TODO: Handle errors (when the player shuts down for example)
-# TODO: XDG Base Directory Specification
+# TODO: XDG Base Directory Specification (kinda already implemented)
 
 import os
 import io
@@ -8,6 +7,7 @@ import re
 import time
 import urllib.request
 from PIL import Image
+from dbus import DBusException
 from xdg.BaseDirectory import xdg_config_home, xdg_data_home
 import configparser
 import base64
@@ -150,6 +150,14 @@ def decodeData(data, encoding):
     return art
 
 
+def shutdown(text_path, art_path):
+    writeTitle(f"", text_path)
+    writeAlbumArt("default.png", art_path)
+
+    print("------------------------------------")
+    print("Player shut down. Quitting")
+
+
 def main():
     firstRun()
     text_save_path, art_save_path, player = readConfig()
@@ -166,10 +174,15 @@ def main():
         user_art_save_path = art_save_path
     writeConfig("art_location", user_art_save_path)
 
-    print("Started")
+    print("------------------------------------")
+    print("Started. Ctrl + c to quit")
 
     while True:
-        metadata = player.Get("org.mpris.MediaPlayer2.Player", "Metadata", dbus_interface="org.freedesktop.DBus.Properties")
+        try:
+            metadata = player.Get("org.mpris.MediaPlayer2.Player", "Metadata", dbus_interface="org.freedesktop.DBus.Properties")
+        except DBusException:
+            shutdown(user_text_save_path, user_art_save_path)
+            return
 
         artist = metadata["xesam:artist"][0] if "xesam:artist" in metadata else ""
         song = metadata["xesam:title"] if "xesam:title" in metadata else ""
@@ -208,4 +221,8 @@ def main():
         time.sleep(0.2)
 
 
-main()
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nBye!")
