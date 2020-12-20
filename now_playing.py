@@ -32,28 +32,28 @@ def firstRun():
 
         }
 
-        with open(os.path.join(xdg_config_home, APP_NAME, 'config.conf'), 'w') as cf:
+        with open(os.path.join(xdg_config_home, APP_NAME, "config.conf"), "w") as cf:
             config.write(cf)
 
 
 def readConfig():
     config = configparser.ConfigParser()
-    config.read(os.path.join(xdg_config_home, APP_NAME, 'config.conf'))
+    config.read(os.path.join(xdg_config_home, APP_NAME, "config.conf"))
 
-    text_location = config['USER']['text_location']
-    art_location = config['USER']['art_location']
-    player = config['USER']['player']
+    text_location = config["USER"]["text_location"]
+    art_location = config["USER"]["art_location"]
+    player = config["USER"]["player"]
 
     return text_location, art_location, player
 
 
 def writeConfig(key, value):
     config = configparser.ConfigParser()
-    config.read(os.path.join(xdg_config_home, APP_NAME, 'config.conf'))
+    config.read(os.path.join(xdg_config_home, APP_NAME, "config.conf"))
 
     config["USER"][key] = value
 
-    with open(os.path.join(xdg_config_home, APP_NAME, 'config.conf'), 'w') as cf:
+    with open(os.path.join(xdg_config_home, APP_NAME, "config.conf"), "w") as cf:
         config.write(cf)
 
 
@@ -63,10 +63,10 @@ def setupPlayer(default_player):
     players = list()
 
     for service in bus.list_names():
-        if re.match('org.mpris.MediaPlayer2.', service):
-            players.append(service.replace('org.mpris.MediaPlayer2.', ''))
+        if re.match("org.mpris.MediaPlayer2.", service):
+            players.append(service.replace("org.mpris.MediaPlayer2.", ""))
 
-    sep = '\n\t'
+    sep = "\n\t"
     print(f"Available players:\n\t{sep.join(players)}")
 
     selected_player = ""
@@ -79,7 +79,7 @@ def setupPlayer(default_player):
 
     writeConfig("player", selected_player)
 
-    player = bus.get_object(f'org.mpris.MediaPlayer2.{selected_player}', '/org/mpris/MediaPlayer2')
+    player = bus.get_object(f"org.mpris.MediaPlayer2.{selected_player}", "/org/mpris/MediaPlayer2")
 
     return player
 
@@ -135,30 +135,30 @@ def main():
     firstRun()
     text_save_path, art_save_path, player = readConfig()
     player = setupPlayer(player)
-    old_url = ""
+    old_url = " "
 
-    filename = input(f"Path + filename to the file where you want to write the window title (default {text_save_path}): ")
-    if not filename:
-        filename = text_save_path
-    writeConfig("text_location", filename)
+    user_text_save_path = input(f"Path + filename to save the song title to (empty for default: {text_save_path}): ")
+    if not user_text_save_path:
+        user_text_save_path = text_save_path
+    writeConfig("text_location", user_text_save_path)
 
-    album_path = input(f"Path + filename to the file where you want to write the album art (default {art_save_path}): ")
-    if not album_path:
-        album_path = art_save_path
-    writeConfig("art_location", album_path)
+    user_art_save_path = input(f"Path + filename to save the album art to (empty for default: {art_save_path}): ")
+    if not user_art_save_path:
+        user_art_save_path = art_save_path
+    writeConfig("art_location", user_art_save_path)
+
+    print("Started")
 
     while True:
-        metadata = player.Get('org.mpris.MediaPlayer2.Player', 'Metadata', dbus_interface='org.freedesktop.DBus.Properties')
-        playing = player.Get('org.mpris.MediaPlayer2.Player', 'PlaybackStatus', dbus_interface='org.freedesktop.DBus.Properties')
-
-        url = metadata['xesam:url'] if 'xesam:url' in metadata else 'Unknown url'
+        metadata = player.Get("org.mpris.MediaPlayer2.Player", "Metadata", dbus_interface="org.freedesktop.DBus.Properties")
+        url = metadata["xesam:url"] if "xesam:url" in metadata else ""
 
         if old_url != url:
 
-            artist = metadata['xesam:artist'][0] if 'xesam:artist' in metadata else 'Unknown Artist'
-            song = metadata['xesam:title'] if 'xesam:title' in metadata else 'Unknown Song'
-            album = metadata['xesam:album'] if 'xesam:album' in metadata else 'Unknown Album'
-            album_art = metadata['mpris:artUrl'] if 'mpris:artUrl' in metadata else ''
+            artist = metadata["xesam:artist"][0] if "xesam:artist" in metadata else ""
+            song = metadata["xesam:title"] if "xesam:title" in metadata else ""
+            album = metadata["xesam:album"] if "xesam:album" in metadata else ""
+            album_art = metadata["mpris:artUrl"] if "mpris:artUrl" in metadata else "default.png"
             album_art = album_art.replace("file://", "")
 
             if album_art.startswith("https://open.spotify.com"):
@@ -168,24 +168,14 @@ def main():
                 getSpotifyAlbumArt(album_art)
                 album_art = os.path.join(xdg_data_home, APP_NAME, "spotify")
 
-            print("--------------------")
-
-            if playing == "Playing":
-                print(f"{artist}\n{song}\n{album}")
-                writeTitle(f"{artist}\n{song}\n{album}", filename)
-                print(album_art)
-
-                if album_art:
-                    writeAlbumArt(album_art, album_path)
-                else:
-                    writeAlbumArt("default.png", album_path)
-
-            else:
-                print("Paused")
-                writeTitle("", filename)
-                writeAlbumArt("default.png", album_path)
+            writeTitle(f"{artist}\n{song}\n{album}", user_text_save_path)
+            writeAlbumArt(album_art, user_art_save_path)
 
             old_url = url
+
+            print("--------------------")
+            print(f"{artist} - {song}, {album}") if artist or song or album else print("Paused")
+            print(f"Album art: {album_art}")
 
         time.sleep(0.2)
 
