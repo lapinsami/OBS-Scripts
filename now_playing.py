@@ -2,6 +2,7 @@
 # TODO: XDG Base Directory Specification
 
 import os
+import io
 import dbus
 import re
 import time
@@ -9,6 +10,7 @@ import urllib.request
 from PIL import Image
 from xdg.BaseDirectory import xdg_config_home, xdg_data_home
 import configparser
+import base64
 
 APP_NAME = os.path.join("Vogelchevalier", "OBS-Scripts")
 
@@ -131,6 +133,23 @@ def writeAlbumArt(source, destination):
     image.save(destination)
 
 
+def decodeData(data, encoding):
+    if encoding == "base64":
+        art = io.BytesIO(base64.b64decode(data))
+    elif encoding == "base32":
+        art = io.BytesIO(base64.b32decode(data))
+    elif encoding == "base16":
+        art = io.BytesIO(base64.b16decode(data))
+    elif encoding == "ascii85":
+        art = io.BytesIO(base64.a85decode(data))
+    elif encoding == "base85":
+        art = io.BytesIO(base64.b85decode(data))
+    else:
+        art = "default.png"
+
+    return art
+
+
 def main():
     firstRun()
     text_save_path, art_save_path, player = readConfig()
@@ -161,12 +180,22 @@ def main():
         song_id = artist + song + album + album_art
 
         if old_song_id != song_id:
-            if album_art.startswith("https://open.spotify.com"):
+            if album_art.startswith("data:image/"):
+                album_art = album_art.partition(",")
+                data = album_art[2].replace(' ', '+')
+                encoding = album_art[0].partition(";")[2]
+                album_art = decodeData(data, encoding)
+
+            elif album_art.startswith("https://open.spotify.com"):
                 # Spotify gives broken urls, see
                 # https://community.spotify.com/t5/Desktop-Linux/MPRIS-cover-art-url-file-not-found/td-p/4920104
                 # And I also have to download the image to use it in writeAlbumArt()
                 getSpotifyAlbumArt(album_art)
                 album_art = os.path.join(xdg_data_home, APP_NAME, "spotify")
+
+            elif album_art.startswith("https://"):
+                urllib.request.urlretrieve(album_art, os.path.join(xdg_data_home, APP_NAME, "https"))
+                album_art = os.path.join(xdg_data_home, APP_NAME, "https")
 
             writeTitle(f"{artist}\n{song}\n{album}", user_text_save_path)
             writeAlbumArt(album_art, user_art_save_path)

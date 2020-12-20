@@ -16,9 +16,11 @@ Misc scripts for OBS on Linux. Currently only gets the album art and song info f
  ![Track info and art in OBS](example-images/obs.png?raw=true "Track info and art in OBS")
  
 ### Tested players
+* [Elisa](https://community.kde.org/Elisa)
+* [Spotify](https://www.spotify.com/us/download/linux/)
+* [Strawberry](https://www.strawberrymusicplayer.org)
+
 Everything with MPRIS2 support should work
-* Strawberry
-* Spotify
 
 ##### License
  * [Zlib](LICENSE)
