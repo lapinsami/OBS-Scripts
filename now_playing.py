@@ -104,7 +104,7 @@ def setupPlayer(default_player):
     # Get input
     selected_player = ""
     while selected_player not in players:
-        user_input = input(f"Select a player (default {default_player})\n> ")
+        user_input = input(f"\nSelect a player (default {default_player})\n> ")
 
         if not user_input:
             selected_player = default_player
@@ -123,7 +123,7 @@ def setupPlayer(default_player):
             if 1 <= user_input <= len(players):
                 selected_player = players[user_input - 1]
 
-    print(f"Selected {selected_player} as the player")
+    print("\033[92m" + f"[OK] Selected {selected_player} as the player" + "\033[0m")
     writeConfig("player", selected_player)
 
     player = bus.get_object(f"org.mpris.MediaPlayer2.{selected_player}", "/org/mpris/MediaPlayer2")
@@ -205,27 +205,25 @@ def main():
     player = setupPlayer(player)
     old_song_id = " "
 
-    user_text_save_path = input(f"Path + filename to save the song title to (empty for default: {text_save_path})\n> ")
+    user_text_save_path = input(f"Path + filename to save the song title to\nEmpty for default: {text_save_path}\n> ")
     if not user_text_save_path:
         user_text_save_path = text_save_path
     writeConfig("text_location", user_text_save_path)
-    print(f"Saving to {user_text_save_path}")
+    print("\033[92m" + f"[OK] Saving to {user_text_save_path}" + "\033[0m")
 
-    user_art_save_path = input(f"Path + filename to save the album art to (empty for default: {art_save_path})\n> ")
+    user_art_save_path = input(f"Path + filename to save the album art to\nEmpty for default: {art_save_path}\n> ")
     if not user_art_save_path:
         user_art_save_path = art_save_path
     writeConfig("art_location", user_art_save_path)
-    print(f"Saving to {user_art_save_path}")
+    print("\033[92m" + f"[OK] Saving to {user_art_save_path}" + "\033[0m")
 
-    print("------------------------------------")
-    print("Started. Ctrl + c to quit")
+    print("-----------------" + "\033[95m" + "Started. Ctrl + c to quit" + "\033[0m" + "-----------------")
 
     while True:
         try:
             metadata = player.Get("org.mpris.MediaPlayer2.Player", "Metadata", dbus_interface="org.freedesktop.DBus.Properties")
         except DBusException:
-            print("------------------------------------")
-            print("Player shut down. Quitting")
+            print("\033[93m" + "[ERROR] Player shut down. Quitting" + "\033[0m")
             shutdown(user_text_save_path, user_art_save_path)
             return
 
@@ -258,9 +256,9 @@ def main():
             writeTitle(f"{artist}\n{song}\n{album}", user_text_save_path)
             writeAlbumArt(album_art, user_art_save_path)
 
-            print("------------------------------------")
-            print(f"{artist} - {song}, {album}") if artist or song or album else print("Paused")
+            print(f"{artist} - {song}\n{album}") if artist or song or album else print("Paused")
             print(f"Album art: {album_art}")
+            print("-----------------------------------------------------------")
 
         old_song_id = song_id
         time.sleep(0.2)
