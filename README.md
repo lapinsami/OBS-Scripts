@@ -2,12 +2,9 @@ Misc scripts for OBS on Linux. Currently only gets the album art and song info f
 
 ### Requirements
  * Linux (Arch tested)
- * Python >= 3.9, might work on older python3 versions, haven't tested
- * python-dbus
- * python-pyxdg
- * See the imports for python packages
+ * Python (3.9 tested)
  * A music player with MPRIS2 support
- 
+ * [requirements.txt](requirements.txt)
 #### Usage
  * `python now_playing.py`
  
@@ -17,6 +14,7 @@ Misc scripts for OBS on Linux. Currently only gets the album art and song info f
  
 ### Tested players
 * [Elisa](https://community.kde.org/Elisa)
+* [mpv](https://mpv.io) (artwork does not work, see [antlarr/lua-mpris](https://github.com/antlarr/lua-mpris) for a fix)
 * [Spotify](https://www.spotify.com/us/download/linux/)
 * [Strawberry](https://www.strawberrymusicplayer.org)
 

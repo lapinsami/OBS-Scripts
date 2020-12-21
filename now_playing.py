@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # TODO: XDG Base Directory Specification (kinda already implemented)
 
 import os
@@ -24,7 +25,7 @@ def firstRun():
         config = configparser.ConfigParser()
 
         config["DEFAULT"] = {
-            "player": "strawberry",
+            "player": "",
             "text_location": os.path.join(xdg_data_home, APP_NAME, "np.txt"),
             "art_location": os.path.join(xdg_data_home, APP_NAME, "art.png")
         }
@@ -67,21 +68,65 @@ def setupPlayer(default_player):
         if service.startswith("org.mpris.MediaPlayer2."):
             players.append(service.replace("org.mpris.MediaPlayer2.", ""))
 
-    sep = "\n\t"
-    print(f"Available players:\n\t{sep.join(players)}")
+    players = sorted(players)
 
+    if not default_player:
+        default_player = players[0]
+
+    elif default_player not in players:
+        print(f"Default player {default_player} not running")
+        default_player = players[0]
+
+    # Generate short strings for each player
+    player_shorts = list()
+
+    for player in players:
+        player_short = ""
+
+        for i in range(len(player)):
+            if not player[i].isnumeric():
+                player_short += player[i]
+
+            if player_short not in player_shorts:
+                player_shorts.append(player_short)
+                break
+
+            elif i == len(player) - 1:
+                player_shorts.append(None)
+                break
+
+    # Print available players
+    tab = "\t"
+    print(f"Available players:")
+    for i, short in enumerate(player_shorts):
+        print(f"{i + 1}.{tab}{players[i].replace(short, '[' + short + ']', 1)}")
+
+    # Get input
     selected_player = ""
-
     while selected_player not in players:
-        selected_player = input(f"Select a player (type the name, default {default_player}): ")
+        user_input = input(f"Select a player (default {default_player})\n> ")
 
-        if not selected_player:
+        if not user_input:
             selected_player = default_player
 
+        # Selecting with name
+        elif user_input in players:
+            selected_player = user_input
+
+        # Selecting with shorthand
+        elif user_input in player_shorts:
+            selected_player = players[player_shorts.index(user_input)]
+
+        # Selecting with number
+        elif user_input.isnumeric():
+            user_input = int(user_input)
+            if 1 <= user_input <= len(players):
+                selected_player = players[user_input - 1]
+
+    print(f"Selected {selected_player} as the player")
     writeConfig("player", selected_player)
 
     player = bus.get_object(f"org.mpris.MediaPlayer2.{selected_player}", "/org/mpris/MediaPlayer2")
-
     return player
 
 
@@ -153,9 +198,6 @@ def shutdown(text_path, art_path):
     writeTitle(f"", text_path)
     writeAlbumArt("default.png", art_path)
 
-    print("------------------------------------")
-    print("Player shut down. Quitting")
-
 
 def main():
     firstRun()
@@ -163,15 +205,17 @@ def main():
     player = setupPlayer(player)
     old_song_id = " "
 
-    user_text_save_path = input(f"Path + filename to save the song title to (empty for default: {text_save_path}): ")
+    user_text_save_path = input(f"Path + filename to save the song title to (empty for default: {text_save_path})\n> ")
     if not user_text_save_path:
         user_text_save_path = text_save_path
     writeConfig("text_location", user_text_save_path)
+    print(f"Saving to {user_text_save_path}")
 
-    user_art_save_path = input(f"Path + filename to save the album art to (empty for default: {art_save_path}): ")
+    user_art_save_path = input(f"Path + filename to save the album art to (empty for default: {art_save_path})\n> ")
     if not user_art_save_path:
         user_art_save_path = art_save_path
     writeConfig("art_location", user_art_save_path)
+    print(f"Saving to {user_art_save_path}")
 
     print("------------------------------------")
     print("Started. Ctrl + c to quit")
@@ -180,6 +224,8 @@ def main():
         try:
             metadata = player.Get("org.mpris.MediaPlayer2.Player", "Metadata", dbus_interface="org.freedesktop.DBus.Properties")
         except DBusException:
+            print("------------------------------------")
+            print("Player shut down. Quitting")
             shutdown(user_text_save_path, user_art_save_path)
             return
 
